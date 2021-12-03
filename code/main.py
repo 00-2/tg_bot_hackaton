@@ -39,12 +39,11 @@ def get_name(message): #получаем фамилию и имя
 def get_surname(message):
     global surname
     surname = message.text
-    bot.send_message(message, f"Имя, {name}, фамилия {surname}")   # тест
-    bot.send_message(message.from_user.id, 'Выберите подразделение в котором работаете:')
+    bot.send_message(message.from_user.id, f"Имя, {name}, фамилия {surname}")   # тест
     bot.register_next_step_handler(message, get_unit)
 
-
 def get_unit(message: types.Message):
+    bot.send_message(message.from_user.id, 'Выберите подразделение в котором работаете:')
     markup_inline = types.InlineKeyboardMarkup()
     button_1 = types.InlineKeyboardButton(text='Подразделение 1', callback_data=1)
     button_2 = types.InlineKeyboardButton(text='Подразделение 2', callback_data=2)
@@ -52,7 +51,7 @@ def get_unit(message: types.Message):
     markup_inline.add(button_1)
     markup_inline.add(button_2)
     markup_inline.add(button_3)
-    # bot.send_message(message.chat.id, 'Сделайте выбор', reply_markup=markup_inline)
+    bot.send_message(message.chat.id, 'Сделайте выбор', reply_markup=markup_inline)
 
 
 bot.polling(none_stop=True)
