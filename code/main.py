@@ -20,6 +20,33 @@ bot = telebot.TeleBot(TOKEN)
 name = ''
 surname = ''
 
+class User:
+    def __init__(self, name, surname, subdivision):
+        self.name = name
+        self.surname = surname
+        self.subdivision = subdivision
+
+    def get_name(self):
+        return self.name
+
+    def set_name(self, name):
+        self.name = name
+
+    def get_surname(self):
+        return self.surname
+
+    def set_surname(self, surname):
+        self.surname = surname
+
+    def get_subdivision(self):
+        return self.subdivision
+
+    def set_subdivision(self, subdivision):
+        self.subdivision = subdivision
+
+    def __str__(self):
+        return f'{self.name}, {self.surname}, {self.subdivision}'
+
 
 @bot.message_handler(commands=['start', 'help'])
 def start(message: telebot.types.Message):
@@ -55,6 +82,9 @@ def get_unit(message: types.Message):
     bot.send_message(message.from_user.id, f"Имя, {name}, фамилия {surname}")   # тест
     bot.send_message(message.chat.id, 'Выберите подразделение в котором работаете:', reply_markup=markup_inline)
 
-
+@bot.callback_query_handler(func=lambda call: True)
+def callback_worker(call):
+    t = call.data
+    bot.send_message(call.message.chat.id, f'{t}')
 
 bot.polling(none_stop=True)
