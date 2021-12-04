@@ -9,7 +9,8 @@ import mysql.connector
 
 #import our classes
 from User import User
-
+import Module
+import Question
 
 # GET TG TOKEN
 simp_path = 'credentials/bot_token'
@@ -141,20 +142,53 @@ def callback_worker(call):
             """
             )
             bot.send_message(call.message.chat.id, 'Сохранено')
+            show_module(call.message.chat.id)
         except Exception as e:
             logging.warning(str(e)+f':{temp_user.get_id(temp_user)}')
             bot.send_message(call.message.chat.id, 'Какая-то ошибка( с базами данных. Чиним.')
 
     
-        
 
+# module 1 - authorized guy
 
+def show_module(tg_id):
+    level = 1
+    mycursor.execute(
+        f'''
+            SELECT level_number
+            FROM users_level
+            WHERE tg_client_id={tg_id};
+        '''
+    )
+    level = mycursor.fetchone()[0]
+    bot.send_message(tg_id, f'Вы на {level} уровне.')
+    if level == 1:
+        module1 = Module.Module
+        mycursor.execute(
+            '''
+                SELECT title, data, task, answers
+                FROM
+                    module
+                    INNER JOIN questions ON module.module_id = questions.module_id
+                WHERE module.module_id = 1;
+            '''
+        )
+        result = mycursor.fetchall()
+        module1.title = result[0][0]
+        module1.data = result[0][1]
+        for question in result:
+            temp = Question.Question(question[2], question[3])
+            module1.arr_of_question.append(temp)
 
+        bot.send_message(tg_id, f'Тема:{module1.title}')
 
-# module 1 - authorized
-
-
-
+        mes_length = 1024
+        if len(module1.data) > mes_length:
+            for x in range(0, len(module1.data), mes_length):
+                bot.send_message(tg_id, module1.data[x:x+mes_length])
+            else:
+                bot.send_message(tg_id,tg_id, module1.data)
+    bot.send_message(tg_id,'ВАЖНО! КОГДА БУДЕТЕ ГОТОВЫ - НАЖМИТЕ КНОПКУ ГОТОВ. На решение у Вас будет 10 минут')
 
 
 

@@ -3,3 +3,6 @@ credentials
 *.log
 test_file.py
 create_db.py
+test.py
+insert_into_db.py
+code/__pycache__
