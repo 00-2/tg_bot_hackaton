@@ -48,15 +48,14 @@ class User:
         return f'{self.name}, {self.surname}, {self.subdivision}'
 
 
-@bot.message_handler(commands=['start', 'help'])
+@bot.message_handler(commands=['start', 'help'])   #
 def start(message: telebot.types.Message):
     if message.text == '/start':
         bot.send_message(message.from_user.id, "Напишите ваше имя:")
         bot.register_next_step_handler(message, get_name)  # следующий шаг – функция get_name
 
 
-# @bot.message_handler(content_types=['text'])
-def get_name(message): #получаем фамилию и имя
+def get_name(message):   # получаем фамилию и имя
     global name
     name = message.text
     bot.send_message(message.from_user.id, 'Напишите вашу Фамилию:')
@@ -69,9 +68,7 @@ def get_surname(message):
     surname = message.text
 
 
-def get_unit(message: types.Message):
-# def get_unit(message):
-
+def get_unit(message: types.Message):   # кнопки выбора подразделения
     markup_inline = types.InlineKeyboardMarkup()
     button_1 = types.InlineKeyboardButton(text='Подразделение 1', callback_data=1)
     button_2 = types.InlineKeyboardButton(text='Подразделение 2', callback_data=2)
@@ -79,12 +76,36 @@ def get_unit(message: types.Message):
     markup_inline.add(button_1)
     markup_inline.add(button_2)
     markup_inline.add(button_3)
-    bot.send_message(message.from_user.id, f"Имя, {name}, фамилия {surname}")   # тест
+    bot.send_message(message.from_user.id, f"Имя, {name}, фамилия {surname}")   # тест, в дальнейшем удалить!!!
     bot.send_message(message.chat.id, 'Выберите подразделение в котором работаете:', reply_markup=markup_inline)
 
-@bot.callback_query_handler(func=lambda call: True)
+
+@bot.callback_query_handler(func=lambda call: True)   # получаем значение нажатой кнопки. call.data - это callback_data
 def callback_worker(call):
     t = call.data
-    bot.send_message(call.message.chat.id, f'{t}')
+    msg = t
+    bot.send_message(call.message.chat.id, f'{t}')      # тест, в дальнейшем удалить!!!
+    bot.register_next_step_handler(call, test_before_lesson)
+
+
+def test_before_lesson(message: types.Message):   # приветствие перед вводным тестом
+    bot.send_message(message.from_user.id, f'Здравствуйте, {name} {surname}')
+    bot.send_message(message.from_user.id, f'Предлагаем вам пройти тест, если готовы нажмите "Далее". ')
+    bot.send_message(message.from_user.id, f'Если нет, нажмите "Выход".')
+    markup_inline = types.InlineKeyboardMarkup()
+    markup_inline.add(types.InlineKeyboardButton(text='Далее', callback_data=True))
+    markup_inline.add(types.InlineKeyboardButton(text='Выход', callback_data=False))
+
+
+@bot.callback_query_handler(func=lambda call: True)   # получаем значение нажатой кнопки. call.data - это callback_data
+def callback_worker(call):
+    button_value = call.data
+    bot.send_message(call.message.chat.id, f'{button_value}')   # тест, в дальнейшем удалить!!!
+    if button_value:
+        bot.register_next_step_handler(get_name)
+    else:
+        bot.register_next_step_handler(get_surname)
+
 
 bot.polling(none_stop=True)
+
