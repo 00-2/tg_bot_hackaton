@@ -1,3 +1,5 @@
 venv
 credentials
 *.log
+test_file.py
+create_db.py

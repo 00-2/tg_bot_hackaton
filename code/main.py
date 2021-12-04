@@ -1,74 +1,164 @@
 import telebot
-import os
-import logging
 from telebot import types
 
+import os
+import json
+import logging
+
+import mysql.connector
+
+#import our classes
+from User import User
+
+
+# GET TG TOKEN
 simp_path = 'credentials/bot_token'
 abs_path = os.path.abspath(simp_path)
 with open(abs_path, 'r') as file:
-    pass
     TOKEN = file.read().replace('\n', '')
 
+# GET DB credentials
+simp_path = 'credentials/db.json'
+abs_path = os.path.abspath(simp_path)
+with open(abs_path, 'r') as file:
+    db_credentials = json.load(file)
 
+mydb = mysql.connector.connect(
+  host=db_credentials["host"],
+  user=db_credentials["user"],
+  password=db_credentials["password"],
+  database=db_credentials["database"]
+)
+mycursor = mydb.cursor()
+
+# logging format
 FORMAT = '%(asctime)s %(message)s'
-logging.basicConfig(filename='server.log', level=logging.DEBUG, format=FORMAT)
-
-
+logging.basicConfig(filename='server.log', format=FORMAT)
 logging.info('bot start')
+
 bot = telebot.TeleBot(TOKEN)
 
-name = ''
-surname = ''
-
-class User:
-    def __init__(self, name, surname, subdivision):
-        self.name = name
-        self.surname = surname
-        self.subdivision = subdivision
-
-    def get_name(self):
-        return self.name
-
-    def set_name(self, name):
-        self.name = name
-
-    def get_surname(self):
-        return self.surname
-
-    def set_surname(self, surname):
-        self.surname = surname
-
-    def get_subdivision(self):
-        return self.subdivision
-
-    def set_subdivision(self, subdivision):
-        self.subdivision = subdivision
-
-    def __str__(self):
-        return f'{self.name}, {self.surname}, {self.subdivision}'
+set_of_users = {}
 
 
-@bot.message_handler(commands=['start', 'help'])   #
+@bot.message_handler(commands=['start', 'help'])
 def start(message: telebot.types.Message):
     if message.text == '/start':
-        bot.send_message(message.from_user.id, "Напишите ваше имя:")
-        bot.register_next_step_handler(message, get_name)  # следующий шаг – функция get_name
+        bot.send_message(message.from_user.id, "Вы перенаправлены на страницу входа:")
+        # Получение данных пользователя
+        get_reg_info(message)
+
+def get_reg_info(message):
+    tg_id = message.from_user.id
+    logging.info(f'/start:{tg_id}')
+    temp_user = User
+    temp_user.set_id(temp_user,tg_id)
+    message=bot.send_message(message.from_user.id, 'Введите Ваше имя:')
+    bot.register_next_step_handler(message, process_name_step, temp_user)
+
+def process_name_step(message, temp_user):
+    try:
+        name = message.text
+        print(name)
+        temp_user.set_name(temp_user,name)
+        logging.info(f'/start name_step:{temp_user.get_id(temp_user)},{temp_user.get_name(temp_user)}')
+        print(f'/start name_step:{temp_user.get_id(temp_user)},{temp_user.get_name(temp_user)}')
+        bot.send_message(message.from_user.id, 'Введите Вашу фамилию:')
+        bot.register_next_step_handler(message, process_surname_step, temp_user)
+    except Exception as e:
+        logging.warning(str(e)+f':{temp_user.get_id(temp_user)}')
+        bot.reply_to(message, 'Произошла ошибка. Введите команду /start ещё раз')
+
+def process_surname_step(message,temp_user):
+    try:
+        surname = message.text
+        print(surname)
+        temp_user.set_surname(temp_user,surname)
+        logging.info(f'/start name_step:{temp_user.get_id(temp_user)},{temp_user.get_name(temp_user)}, {temp_user.get_surname(temp_user)}')
+        print(f'/start name_step:{temp_user.get_id(temp_user)},{temp_user.get_name(temp_user)},{temp_user.get_surname(temp_user)}')
+        bot.send_message(message.from_user.id, 'Введите Ваше отчество:')
+        bot.register_next_step_handler(message,process_last_name_step, temp_user)
+    except Exception as e:
+        logging.warning(str(e)+f':{temp_user.get_id(temp_user)}')
+        bot.reply_to(message, 'Произошла ошибка. Введите команду /start ещё раз')
+
+def process_last_name_step(message,temp_user):
+    try:
+        last_name = message.text
+        print(last_name)
+        temp_user.set_last_name(temp_user,last_name)
+        logging.info(f'/start name_step:{temp_user.get_id(temp_user)},{temp_user.get_name(temp_user)},{temp_user.get_surname(temp_user)},{temp_user.get_last_name(temp_user)}')
+        print(f'/start name_step:{temp_user.get_id(temp_user)},{temp_user.get_name(temp_user)},{temp_user.get_surname(temp_user)},{temp_user.get_last_name(temp_user)}')
+        confirm(message, temp_user,1)
+    except Exception as e:
+        logging.warning(str(e)+f':{temp_user.get_id(temp_user)}')
+        bot.reply_to(message, 'oooops')
+
+def confirm(message,temp_user,step):
+    global set_of_users
+    if step==1:
+        set_of_users[message.from_user.id] = temp_user
+        markup_inline = types.InlineKeyboardMarkup()
+        yes = types.InlineKeyboardButton(text='Всё верно', callback_data=1)
+        no = types.InlineKeyboardButton(text='Исправить данные', callback_data=2)
+        markup_inline.add(yes)
+        markup_inline.add(no)
+        bot.send_message(message.chat.id, 'Подтвердите данные', reply_markup=markup_inline)
+        
 
 
-def get_name(message):   # получаем фамилию и имя
-    global name
-    name = message.text
-    bot.send_message(message.from_user.id, 'Напишите вашу Фамилию:')
-    bot.register_next_step_handler(message, get_surname)
-    bot.register_next_step_handler(message, get_unit)
+@bot.callback_query_handler(func=lambda call: True)   # получаем значение нажатой кнопки. call.data - это callback_data
+def callback_worker(call):
+    global set_of_users
+    button_value = call.data    
+    if button_value=='2':
+        bot.send_message(call.message.chat.id, f'Введите ок для подтверждения')
+        bot.register_next_step_handler(call.message,get_reg_info)
+    elif button_value == '1':
+        bot.send_message(call.message.chat.id, 'Сохранение данных. Ожидайте')
+        temp_user = set_of_users[call.message.chat.id]
+        print(f"to db:{call.message.chat.id}")
+        logging.info(f"to db:{call.message.chat.id}")
+        # Запись в базу юзеров
+        try:
+            mycursor.execute(
+            f"""
+                INSERT INTO users_data(first_name, last_name, surname, tg_client_id)
+                VALUES('{temp_user.get_name(temp_user)}','{temp_user.get_last_name(temp_user)}','{temp_user.get_surname(temp_user)}','{temp_user.get_id(temp_user)}');
+            """
+            )
+            bot.send_message(call.message.chat.id, 'Сохраненяем..')
+        except Exception as e:
+            logging.warning(str(e)+f':{temp_user.get_id(temp_user)}')
+            bot.send_message(call.message.chat.id, 'Какая-то ошибка( с базами данных. Чиним.')
+
+        # Запись о пройденном первом уровне
+        try:
+            mycursor.execute(
+            f"""
+                INSERT INTO users_level(tg_client_id, level_number)
+                VALUES('{temp_user.get_id(temp_user)}',1);
+            """
+            )
+            bot.send_message(call.message.chat.id, 'Сохранено')
+        except Exception as e:
+            logging.warning(str(e)+f':{temp_user.get_id(temp_user)}')
+            bot.send_message(call.message.chat.id, 'Какая-то ошибка( с базами данных. Чиним.')
+
+    
+        
 
 
-def get_surname(message):
-    global surname
-    surname = message.text
 
 
-def get_unit(message: types.Message):   # кнопки выбора подразделения
+# module 1 - authorized
+
+
+
+
+
+
+'''def get_unit(message: types.Message):   # кнопки выбора подразделения
     markup_inline = types.InlineKeyboardMarkup()
     button_1 = types.InlineKeyboardButton(text='Подразделение 1', callback_data=1)
     button_2 = types.InlineKeyboardButton(text='Подразделение 2', callback_data=2)
@@ -80,12 +170,6 @@ def get_unit(message: types.Message):   # кнопки выбора подраз
     bot.send_message(message.chat.id, 'Выберите подразделение в котором работаете:', reply_markup=markup_inline)
 
 
-@bot.callback_query_handler(func=lambda call: True)   # получаем значение нажатой кнопки. call.data - это callback_data
-def callback_worker(call):
-    t = call.data
-    msg = t
-    bot.send_message(call.message.chat.id, f'{t}')      # тест, в дальнейшем удалить!!!
-    bot.register_next_step_handler(call, test_before_lesson)
 
 
 def test_before_lesson(message: types.Message):   # приветствие перед вводным тестом
@@ -106,6 +190,5 @@ def callback_worker(call):
     else:
         bot.register_next_step_handler(get_surname)
 
-
+'''
 bot.polling(none_stop=True)
-
