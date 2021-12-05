@@ -174,7 +174,7 @@ def callback_worker(call):
             """
             )
             bot.send_message(call.message.chat.id, 'Сохранено')
-            show_module(call.message.chat.id,2)
+            show_module(call.message.chat.id,1)
             # markup_module = types.InlineKeyboardMarkup()
             # study = types.InlineKeyboardButton(text='Модуль обучения', callback_data="command_study")
             # tests = types.InlineKeyboardButton(text='Модуль тестирования', callback_data="command_test")
@@ -252,9 +252,42 @@ def show_module(tg_id,level=1):
                 bot.send_message(tg_id, module1.data[x:x+mes_length])
             else:
                 bot.send_message(tg_id,tg_id, module1.data)    
-    message = bot.send_message(tg_id,'ВАЖНО! КОГДА БУДЕТЕ ГОТОВЫ - ВВЕДИТЕ ОК. На решение у Вас будет 10 минут')
-    bot.register_next_step_handler(message, show_questions_2,module1.arr_of_question,tg_id)
+        message = bot.send_message(tg_id,'ВАЖНО! КОГДА БУДЕТЕ ГОТОВЫ - ВВЕДИТЕ ОК. На решение у Вас будет 10 минут')
+        bot.register_next_step_handler(message, show_questions_2,module1.arr_of_question,tg_id)
+    if level == 3:
+        try:
+            #падает
+            module1 = Module.Module
+            mycursor.execute(
+                '''
+                    SELECT title, data, task, answers
+                    FROM
+                        module
+                        INNER JOIN questions ON module.module_id = questions.module_id
+                    WHERE module.module_id = 3;
+                '''
+            )
+            result = mycursor.fetchall()
+            module1.title = result[0][0]
+            module1.data = result[0][1]
+            module1.arr_of_question = []
+            for question in result:
+                temp = Question.Question(question[2], question[3])
+                module1.arr_of_question.append(temp)
 
+            bot.send_message(tg_id, f'Тема:{module1.title}')
+        
+
+            mes_length = 1024
+            if len(module1.data) > mes_length:
+                for x in range(0, len(module1.data), mes_length):
+                    bot.send_message(tg_id, module1.data[x:x+mes_length])
+            else:
+                bot.send_message(tg_id,tg_id, module1.data)    
+            message = bot.send_message(tg_id,'ВАЖНО! КОГДА БУДЕТЕ ГОТОВЫ - ВВЕДИТЕ ОК. На решение у Вас будет 10 минут')
+            bot.register_next_step_handler(message, show_questions_3,module1.arr_of_question,tg_id)
+        except Exception as e:
+            bot.send_message(tg_id,'Возникла ошибка, ожидайте')
 def show_questions_1(message,arr_questions,tg_id):
     show_question_1(message, arr_questions, 0,[])
 def show_questions_2(message,arr_questions,tg_id):
@@ -387,7 +420,8 @@ def show_result_3(message, arr_questions,arr_answers):
             '''
         )
         global FINAL
-        bot.register_next_step_handler(message, lambda x:(show_module(message.chat.id,level=FINAL)))
+        bot.send_message(message.chat.id,'всё')
+        #bot.register_next_step_handler(message, lambda x:(show_module(message.chat.id,level=FINAL)))
 
 
 '''def get_unit(message: types.Message):   # кнопки выбора подразделения
