@@ -184,6 +184,7 @@ def show_module(tg_id):
         result = mycursor.fetchall()
         module1.title = result[0][0]
         module1.data = result[0][1]
+        module1.arr_of_question = []
         for question in result:
             temp = Question.Question(question[2], question[3])
             module1.arr_of_question.append(temp)
@@ -198,12 +199,47 @@ def show_module(tg_id):
             else:
                 bot.send_message(tg_id,tg_id, module1.data)
         
-    message = bot.send_message(tg_id,'ВАЖНО! КОГДА БУДЕТЕ ГОТОВЫ - НАЖМИТЕ КНОПКУ ГОТОВ. На решение у Вас будет 10 минут')
-    bot.register_next_step_handler(message, show_questions,module1.arr_of_question)
+    message = bot.send_message(tg_id,'ВАЖНО! КОГДА БУДЕТЕ ГОТОВЫ - ВВЕДИТЕ ОК. На решение у Вас будет 10 минут')
+    bot.register_next_step_handler(message, show_questions,module1.arr_of_question,tg_id)
 
-def show_questions(message,arr_questions):
-    for question in arr_questions:
-        print(question.task)
+def show_questions(message,arr_questions,tg_id):
+    show_question(message, arr_questions, 0,[])
+        
+def show_question(message, arr_questions,j,arr_answers):
+    tg_id = message.chat.id
+    if j<len(arr_questions):
+        arr_answers.append(message.text)
+        message = bot.send_message(tg_id,f'ВОПРОС:{arr_questions[j].task}')
+        s = ''
+        i = 0 
+        for answer in json.loads(arr_questions[j].answers):
+            s=s+str(i)+")"+answer+"\n"
+            i=i+1
+        bot.send_message(tg_id,f'Варианты ОТВЕТОВ:\n{s}')
+        bot.register_next_step_handler(message, show_question,arr_questions, j+1,arr_answers)
+    if j == len(arr_questions):
+        arr_answers.append(message.text)
+        bot.send_message(tg_id,f'Введите РЕЗУЛЬТАТ чтобы посмотреть свой результат')
+        bot.register_next_step_handler(message, show_result,arr_questions, arr_answers)
+def show_result(message, arr_questions,arr_answers):
+    result = 0
+    for i in range(0,len(arr_questions)):
+        index = []
+        for x in json.loads(arr_questions[i].answers):
+            index.append(x)
+        if int(arr_answers[i+1])<len(index):
+            result = result + int(json.loads(arr_questions[i].answers)[index[int(arr_answers[i+1])]])
+    bot.send_message(message.chat.id,f'Вы набрали {result}/{len(arr_questions)}')
+    if result<len(arr_questions):
+        bot.send_message(message.chat.id,f'Чтобы пройти дальше - необходимо набрать {len(arr_questions)}/{len(arr_questions)}')
+        bot.send_message(message.chat.id,f'Отправляем Вас на страницу подготовки, введите ОК, чтобы продолжить')
+        del(arr_questions)
+        del(arr_answers)
+        bot.register_next_step_handler(message, lambda x:(show_module(message.chat.id)))
+    else:
+        bot.send_message(message.chat.id,f'Вы огромный молодец! Сейчас перенаправим Вас на следующий модуль.')
+    pass
+
 '''def get_unit(message: types.Message):   # кнопки выбора подразделения
     markup_inline = types.InlineKeyboardMarkup()
     button_1 = types.InlineKeyboardButton(text='Подразделение 1', callback_data=1)
