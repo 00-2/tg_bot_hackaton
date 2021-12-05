@@ -111,7 +111,7 @@ def confirm(message,temp_user,step):
 @bot.callback_query_handler(func=lambda call: True)   # получаем значение нажатой кнопки. call.data - это callback_data
 def callback_worker(call):
     global set_of_users
-    button_value = call.data    
+    button_value = call.data        
     if button_value=='2':
         bot.send_message(call.message.chat.id, f'Введите ок для подтверждения')
         bot.register_next_step_handler(call.message,get_reg_info)
@@ -143,6 +143,14 @@ def callback_worker(call):
             )
             bot.send_message(call.message.chat.id, 'Сохранено')
             show_module(call.message.chat.id)
+            # markup_module = types.InlineKeyboardMarkup()
+            # study = types.InlineKeyboardButton(text='Модуль обучения', callback_data="command_study")
+            # tests = types.InlineKeyboardButton(text='Модуль тестирования', callback_data="command_test")
+            # estimation = types.InlineKeyboardButton(text='Модуль оценки', callback_data="command_estimation")
+            # markup_module.add(study, tests, estimation)
+            # bot.send_message(call.message.chat.id, text="Выберите тему для изучения(лучше начать с первой)",reply_markup = markup_module)
+            
+            
         except Exception as e:
             logging.warning(str(e)+f':{temp_user.get_id(temp_user)}')
             bot.send_message(call.message.chat.id, 'Какая-то ошибка( с базами данных. Чиним.')
@@ -181,6 +189,7 @@ def show_module(tg_id):
             module1.arr_of_question.append(temp)
 
         bot.send_message(tg_id, f'Тема:{module1.title}')
+        
 
         mes_length = 1024
         if len(module1.data) > mes_length:
@@ -188,10 +197,13 @@ def show_module(tg_id):
                 bot.send_message(tg_id, module1.data[x:x+mes_length])
             else:
                 bot.send_message(tg_id,tg_id, module1.data)
-    bot.send_message(tg_id,'ВАЖНО! КОГДА БУДЕТЕ ГОТОВЫ - НАЖМИТЕ КНОПКУ ГОТОВ. На решение у Вас будет 10 минут')
+        
+    message = bot.send_message(tg_id,'ВАЖНО! КОГДА БУДЕТЕ ГОТОВЫ - НАЖМИТЕ КНОПКУ ГОТОВ. На решение у Вас будет 10 минут')
+    bot.register_next_step_handler(message, show_questions,module1.arr_of_question)
 
-
-
+def show_questions(message,arr_questions):
+    for question in arr_questions:
+        print(question.task)
 '''def get_unit(message: types.Message):   # кнопки выбора подразделения
     markup_inline = types.InlineKeyboardMarkup()
     button_1 = types.InlineKeyboardButton(text='Подразделение 1', callback_data=1)
