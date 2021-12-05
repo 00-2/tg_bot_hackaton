@@ -1,5 +1,5 @@
 class User:
-    def __init__(self, name, surname, subdivision, last_name, tg_id):
+    def __init__(self, name, surname, subdivision, last_name, tg_id,password,mail):
         self.name = name
         # Фамилия
         self.surname = surname
@@ -8,6 +8,8 @@ class User:
         # Подразделение
         self.subdivision = subdivision
         self.tg_id = tg_id
+        self.password = password
+        self.mail = mail
     def __init__(self) -> None:
         pass
 
@@ -19,7 +21,12 @@ class User:
 
     def get_last_name(self):
         return self.last_name
+    def get_mail(self):
+        return self.mail
 
+    def set_mail(self,mail):
+        self.mail = mail
+        
     def set_last_name(self, last_name):
         self.last_name = last_name
 
